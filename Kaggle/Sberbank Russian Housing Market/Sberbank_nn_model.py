@@ -58,10 +58,10 @@ class NN:
     def transform_data(self):
         train, test = self.load_data()
         y_train = train["price_doc"]
-        x_train = train.drop(["timestamp", "price_doc"], axis=1)
+        x_train = train.drop(["timestamp", "price_doc", "id"], axis=1)
         x_train = self.clean_feature(x_train)
 
-        x_test = test.drop(["timestamp"], axis=1)
+        x_test = test.drop(["timestamp", "id"], axis=1)
         x_test = self.clean_feature(x_test)
 
         return y_train, x_train, x_test
@@ -84,6 +84,7 @@ class NN:
         return model
 
     def main(self):
+        _, test = self.load_data()
         y_train, x_train, x_test = self.transform_data()
         early_stop = EarlyStopping(monitor="val_loss", patience=20)
         model = self.define_model()
@@ -93,11 +94,11 @@ class NN:
                   verbose=1)
         model.save(a.dir + "model.h5")
         pred = np.reshape(model.predict(x_test.values), -1)
-        output = pd.DataFrame({"id": x_test.index, "price_doc": pred})
+        output = pd.DataFrame({"id": test.id, "price_doc": pred})
         output.to_csv(a.dir + "submissions_nn.csv", index=False)
 
 
 if __name__ == "__main__":
-    # python neural_network_model --dir output/ --epochs 10
+    # python neural_network_model --dir /output/ --epochs 10
     run = NN(epochs=a.epochs)
     run.main()
