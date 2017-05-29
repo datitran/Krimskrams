@@ -92,29 +92,29 @@ class NN:
     def define_model(self):
         _, x_train, _, x_train_macro, _, = self.transform_data()
         a_input = Input(shape=(x_train.shape[1],))
-        a_1 = Dense(1024, activation="sigmoid")(a_input)
-        a_2 = Dense(512, activation="sigmoid")(a_1)
-        a_3 = Dense(256, activation="sigmoid")(a_2)
-        a_4 = Dense(128, activation="sigmoid")(a_3)
-        a_5 = Dropout(0.5)(a_4)
-        a_6 = Dense(64, activation="sigmoid")(a_5)
-        a_7 = Dense(1, activation="linear")(a_6)
+        x = Dense(1024, activation="relu")(a_input)
+        x = Dense(512, activation="relu")(x)
+        x = Dense(256, activation="relu")(x)
+        x = Dense(128, activation="relu")(x)
+        x = Dropout(0.5)(x)
+        x = Dense(64, activation="relu")(x)
+        a_output = Dense(1, activation="linear")(x)
 
         b_input = Input(shape=(x_train_macro.shape[1],))
-        b_1 = Dense(256, activation="sigmoid")(b_input)
-        b_2 = Dense(192, activation="sigmoid")(b_1)
-        b_3 = Dense(128, activation="sigmoid")(b_2)
-        b_4 = Dense(64, activation="sigmoid")(b_3)
-        b_5 = Dropout(0.5)(b_4)
-        b_6 = Dense(32, activation="sigmoid")(b_5)
-        b_7 = Dense(1, activation="linear")(b_6)
+        x = Dense(256, activation="relu")(b_input)
+        x = Dense(192, activation="relu")(x)
+        x = Dense(128, activation="relu")(x)
+        x = Dense(64, activation="relu")(x)
+        x = Dropout(0.5)(x)
+        x = Dense(32, activation="relu")(x)
+        b_output = Dense(1, activation="linear")(x)
 
-        merge_output = average([a_7, b_7])
+        merge_output = average([a_output, b_output])
 
         adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 
         model = Model(inputs=[a_input, b_input], outputs=merge_output)
-        model.compile(optimizer=adam, loss=self.rmsle)
+        model.compile(optimizer=adam, loss="mse", metrics=[self.rmsle])
 
         return model
 

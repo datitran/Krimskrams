@@ -11,6 +11,7 @@ from sklearn import preprocessing
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
 from keras.callbacks import EarlyStopping, Callback
+from keras.optimizers import Adam
 from keras import backend as K
 
 parser = argparse.ArgumentParser()
@@ -32,13 +33,17 @@ class NN:
         self.epochs = epochs
 
     @staticmethod
+    def mse(y_true, y_pred):
+        return K.mean(K.square(y_pred - y_true), axis=-1)
+
+    @staticmethod
     def rmsle(y_true, y_pred):
         a = K.log(y_pred + 1)
         b = K.log(y_true + 1)
         return K.mean(K.square(a - b), axis=-1) ** (1 / 2)
 
     def load_data(self):
-        train = pd.read_csv("data/train.csv", parse_dates=["timestamp"])
+        train = pd.read_csv("data/train_without_noise.csv", parse_dates=["timestamp"])
         test = pd.read_csv("data/test.csv", parse_dates=["timestamp"])
         return train, test
 
@@ -70,23 +75,26 @@ class NN:
         _, x_train, _ = self.transform_data()
         model = Sequential()
         model.add(Dense(1024, input_dim=x_train.shape[1]))
-        model.add(Activation("sigmoid"))
+        model.add(Activation("relu"))
         model.add(Dense(512))
-        model.add(Activation("sigmoid"))
+        model.add(Activation("relu"))
         model.add(Dense(256))
-        model.add(Activation("sigmoid"))
+        model.add(Activation("relu"))
         model.add(Dense(128))
-        model.add(Activation("sigmoid"))
+        model.add(Activation("relu"))
         model.add(Dropout(0.5))
         model.add(Dense(1))
         model.add(Activation("linear"))
-        model.compile(optimizer="rmsprop", loss=self.rmsle)
+
+        adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+
+        model.compile(optimizer=adam, loss="mse", metrics=[self.rmsle])
         return model
 
     def main(self):
         _, test = self.load_data()
         y_train, x_train, x_test = self.transform_data()
-        early_stop = EarlyStopping(monitor="val_loss", patience=20)
+        early_stop = EarlyStopping(monitor="val_rmsle", patience=20)
         model = self.define_model()
         history = LossHistory()
         model.fit(x_train.values, y_train.values, epochs=self.epochs,
